@@ -120,7 +120,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false);
     if (newTaskText.trim() && selectedCategory) {
       setCustomTasks(prev => ({
         ...prev,
-        [selectedCategory]: [...prev[selectedCategory], newTaskText.trim()]
+        [selectedCategory]: [...prev[selectedCategory as keyof typeof PREDEFINED_TASKS], newTaskText.trim()]
       }));
       setNewTaskText("");
       setShowAddTaskDialog(false);
