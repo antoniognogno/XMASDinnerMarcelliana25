@@ -2,13 +2,14 @@
 import { useState } from "react";
 import { useGame } from "@/hooks/useGame";
 import { db } from "@/lib/firebase";
-import { ref, update } from "firebase/database";
+import { ref, update, remove } from "firebase/database";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChristmasBackground } from "@/components/ui/ChristmasBackground"; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { playBuzzerSound, playResetSound } from "@/lib/soundEffects";
 import {
   Dialog,
   DialogContent,
@@ -127,9 +128,15 @@ const [isAuthenticated, setIsAuthenticated] = useState(false);
     }
   };
 
-  const setPhase = (phase: string) => update(ref(db, "gameState"), { phase });
+  const setPhase = (phase: string) => {
+    if (phase === "BUZZER") {
+      playBuzzerSound();
+    }
+    update(ref(db, "gameState"), { phase });
+  };
   
   const resetBuzzer = () => {
+    playResetSound();
     update(ref(db, "gameState"), { phase: "LOBBY", buzzerWinner: null });
     const updates: any = {};
     teams.forEach(t => updates[`teams/${t.id}/buzzedAt`] = null);
@@ -138,6 +145,10 @@ const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const addPoints = (teamId: string, currentScore: number, amount: number) => {
     update(ref(db, `teams/${teamId}`), { score: currentScore + amount });
+  };
+
+  const deleteTeam = (teamId: string) => {
+    remove(ref(db, `teams/${teamId}`));
   };
 
   const buzzers = teams
@@ -251,7 +262,7 @@ const [isAuthenticated, setIsAuthenticated] = useState(false);
                     <Button size="sm" className="bg-white text-black hover:bg-gray-200 font-bold" onClick={() => addPoints(team.id, team.score, 50)}>+50</Button>
                 </div>
 
-                {/* Scrivi Manuale */}
+                {/* Scritti Manuale */}
                 <Dialog open={selectedTeamId === team.id} onOpenChange={(open) => !open && setSelectedTeamId(null)}>
                     <DialogTrigger asChild>
                         <Button variant="link" className="text-white/40 hover:text-white h-auto p-0 text-xs mt-2 w-full" onClick={() => setSelectedTeamId(team.id)}>
@@ -273,6 +284,15 @@ const [isAuthenticated, setIsAuthenticated] = useState(false);
                         <DialogFooter><Button onClick={handleSendManual} className="w-full bg-white text-black font-bold">INVIA</Button></DialogFooter>
                     </DialogContent>
                 </Dialog>
+
+                {/* Bottone Rimozione Squadra */}
+                <Button 
+                  onClick={() => deleteTeam(team.id)}
+                  variant="ghost"
+                  className="bg-red-500/20 text-red-300 hover:bg-red-500/40 hover:text-red-200 text-xs font-bold w-full mt-2"
+                >
+                  🗑️ Rimuovi Squadra
+                </Button>
 
             </div>
             ))}

@@ -64,10 +64,28 @@ export function useGame() {
   // PRESSIONE PULSANTE (Solo se fase è BUZZER)
   const pressBuzzer = async (teamId: string) => {
     if (gameState.phase !== 'BUZZER') return;
+    
     // Scrive il timestamp. Vince chi ha il timestamp minore.
     await update(ref(db, `teams/${teamId}`), {
       buzzedAt: serverTimestamp()
     });
+
+    // Assegna punti in base all'ordine
+    const buzzedTeams = teams.filter(t => t.buzzedAt).length + 1; // Aggiunge il team corrente
+    let pointsToAdd = 0;
+    
+    if (buzzedTeams === 1) pointsToAdd = 50;
+    else if (buzzedTeams === 2) pointsToAdd = 30;
+    else if (buzzedTeams === 3) pointsToAdd = 10;
+    
+    if (pointsToAdd > 0) {
+      const currentTeam = teams.find(t => t.id === teamId);
+      if (currentTeam) {
+        await update(ref(db, `teams/${teamId}`), {
+          score: currentTeam.score + pointsToAdd
+        });
+      }
+    }
   };
 
 const sendMessage = async (teamId: string, text: string) => {

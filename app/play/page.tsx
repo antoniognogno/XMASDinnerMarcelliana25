@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 import { useRouter } from "next/navigation";
 import { ChristmasBackground } from "@/components/ui/ChristmasBackground";
+import { playBuzzerSound, playPointsSound, playBuzzReadySound } from "@/lib/soundEffects";
 
 import {
   AlertDialog,
@@ -20,12 +21,23 @@ export default function PlayPage() {
   const { gameState, teams, pressBuzzer, clearMessage } = useGame();
   const [myTeamId, setMyTeamId] = useState<string | null>(null);
   const router = useRouter();
+  const [buzzerNotified, setBuzzerNotified] = useState(false);
 
   useEffect(() => {
     const id = localStorage.getItem("teamId");
     if (!id) router.push("/");
     setMyTeamId(id);
   }, [router]);
+
+  // Riproduci suono quando il buzz diventa disponibile
+  useEffect(() => {
+    if (gameState.phase === "BUZZER" && !buzzerNotified) {
+      playBuzzReadySound();
+      setBuzzerNotified(true);
+    } else if (gameState.phase !== "BUZZER") {
+      setBuzzerNotified(false);
+    }
+  }, [gameState.phase, buzzerNotified]);
 
   const myTeam = teams.find((t) => t.id === myTeamId);
 
@@ -74,6 +86,19 @@ export default function PlayPage() {
            <button
              onClick={() => {
                 if (!myTeam.buzzedAt) {
+                  playBuzzerSound();
+                  
+                  // Calcola i punti che verranno assegnati
+                  const buzzedCount = teams.filter(t => t.buzzedAt).length;
+                  let points = 0;
+                  if (buzzedCount === 0) points = 50;
+                  else if (buzzedCount === 1) points = 30;
+                  else if (buzzedCount === 2) points = 10;
+                  
+                  if (points > 0) {
+                    setTimeout(() => playPointsSound(points), 200);
+                  }
+                  
                   pressBuzzer(myTeam.id);
                   confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 }
